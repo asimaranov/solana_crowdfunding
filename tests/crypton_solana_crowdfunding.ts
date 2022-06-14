@@ -40,7 +40,7 @@ describe("Crowdfunding test", () => {
       .signers([crowdfundingKeypair]).rpc();
 
     const [userInfoPda, _] = await PublicKey.findProgramAddress([anchor.utils.bytes.utf8.encode("user-info"), donater.publicKey.toBuffer()], program.programId);
-    await program.methods.register().accounts({user: donater.publicKey, userInfo: userInfoPda}).signers([donater]).rpc();
+    await program.methods.register().accounts({ user: donater.publicKey, userInfo: userInfoPda }).signers([donater]).rpc();
   });
 
   it("Test donation", async () => {
@@ -53,8 +53,8 @@ describe("Crowdfunding test", () => {
       .signers([crowdfundingKeypair]).rpc();
 
     const [userInfoPda, _] = await PublicKey.findProgramAddress([anchor.utils.bytes.utf8.encode("user-info"), donater.publicKey.toBuffer()], program.programId);
-    await program.methods.register().accounts({user: donater.publicKey, userInfo: userInfoPda}).signers([donater]).rpc();
-  
+    await program.methods.register().accounts({ user: donater.publicKey, userInfo: userInfoPda }).signers([donater]).rpc();
+
     await program.methods
       .makeDonation(new BN(testSolAmount))
       .accounts({ crowdfundingAccount: crowdfundingKeypair.publicKey, donater: donater.publicKey, donaterInfo: userInfoPda })
@@ -90,6 +90,30 @@ describe("Crowdfunding test", () => {
       .rpc().catch(err => expect(err.error.errorMessage).to.equal("Nothing to withdraw"));
   });
 
-  
+  it("Check withdrawing", async () => {
+    await provider.connection.confirmTransaction(await provider.connection.requestAirdrop(donater.publicKey, testSolAmount * anchor.web3.LAMPORTS_PER_SOL));
 
+    await program.methods.initialize()
+      .accounts({ crowdfundingAccount: crowdfundingKeypair.publicKey, owner: owner.publicKey })
+      .signers([crowdfundingKeypair]).rpc();
+
+
+    const [userInfoPda, _] = await PublicKey.findProgramAddress([anchor.utils.bytes.utf8.encode("user-info"), donater.publicKey.toBuffer()], program.programId);
+    await program.methods.register().accounts({ user: donater.publicKey, userInfo: userInfoPda }).signers([donater]).rpc();
+
+    await program.methods
+      .makeDonation(new BN(testSolAmount))
+      .accounts({ crowdfundingAccount: crowdfundingKeypair.publicKey, donater: donater.publicKey, donaterInfo: userInfoPda })
+      .signers([donater])
+      .rpc();
+
+    await program.methods.withdraw()
+      .accounts({ crowdfundingAccount: crowdfundingKeypair.publicKey, owner: owner.publicKey })
+      .rpc();
+    
+    // let crowdfundingState = await program.account.crowdfundingAccount.fetch(crowdfundingKeypair.publicKey);
+
+    // expect(crowdfundingState.balance.eq(new BN(0)));
+
+  });
 });
